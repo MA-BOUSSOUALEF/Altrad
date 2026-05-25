@@ -703,6 +703,12 @@ CAMERA ANGLE — CRITICAL:
 - You see ONLY the horizontal plane — no height/depth visible
 - Bay dividers are VERTICAL LINES across the rectangle
 
+COUNTING RULE — ABSOLUTE LAW — DO NOT IGNORE:
+- Count EXACTLY the vertical dividers in the blueprint = number of bays
+- Blueprint shows EXACTLY {g["nb_t"]} bays — render EXACTLY {g["nb_t"]} bays
+- Total width MUST be EXACTLY {g["total_l"]}m — not wider, not narrower
+- FORBIDDEN: adding, removing or merging any bay for any reason
+
 EXACT DIMENSIONS:
 - EXACTLY {g["nb_t"]} bays side by side: {c["mailles_str"]}
 - Scaffolding depth front-to-back: {g["largeur"]}m
@@ -756,6 +762,12 @@ WHAT IS VISIBLE FROM THE LEFT SIDE:
 - Brown wall: vertical band touching the back post on LEFT
 - KPE6 access ladder on RIGHT with rungs at each level
 
+COUNTING RULE — ABSOLUTE LAW — DO NOT IGNORE:
+- Count EXACTLY the horizontal floor bands in the blueprint = number of levels
+- Blueprint shows EXACTLY {g["nb_n"]} levels — render EXACTLY {g["nb_n"]} levels
+- Total height MUST be EXACTLY {g["total_h"]}m
+- FORBIDDEN: adding, removing or merging any level for any reason
+
 EXACT DIMENSIONS:
 - Total height: {g["total_h"]}m | {g["nb_n"]} levels x {g["esp"]}m
 - Depth shown: {g["largeur"]}m (B dimension)
@@ -804,17 +816,33 @@ ALTRAD PLETTAC METRIX COMPONENTS:
 - Green safety nets (filets verts de protection) between planks
 {c["consoles_str"]}
 
+COUNTING RULE — ABSOLUTE LAW — HIGHEST PRIORITY:
+- The blueprint image is the ONLY source of truth for dimensions
+- Count EXACTLY the vertical posts in the blueprint = {g["nb_t"]} bays
+- Count EXACTLY the horizontal floor lines in the blueprint = {g["nb_n"]} levels
+- Render EXACTLY {g["nb_t"]} bays and EXACTLY {g["nb_n"]} levels — no more, no less
+- Each level is EXACTLY {g["esp"]}m high — total height is EXACTLY {g["total_h"]}m
+- Total width is EXACTLY {g["total_l"]}m
+- FORBIDDEN: inventing levels — FORBIDDEN: merging levels — FORBIDDEN: adding bays
+- FORBIDDEN: changing number of levels or bays for ANY reason including aesthetics
+
 EXACT COVERAGE — MANDATORY:
 - {g["nb_t"]} bays: {c["mailles_str"]}
 - {g["nb_n"]} levels at {g["esp"]}m — Total: {g["total_l"]}m x {g["total_h"]}m
 - 100% of facade covered — NO gap on left, right, top or bottom
+
+COLORS — MANDATORY:
+- Floor planks: EXACTLY #DC3C14 vivid red-orange — NOT brown, NOT dark red
+- Tubes: bright silver galvanized — NOT grey, NOT white
+- Background of scaffolding structure: dark navy #1A1A2E
 
 BUILDING PRESERVATION — MANDATORY:
 - Building colors, architecture, windows COMPLETELY UNCHANGED
 - Same lighting as original photo — all existing objects preserved
 - Photorealistic quality — real construction site photo style
 
-NEGATIVE: No building change. No background change. No partial scaffolding. Full 100% mandatory."""
+NEGATIVE: No building change. No background change. No partial scaffolding. Full 100% mandatory.
+NEGATIVE: Do NOT change the number of levels. Do NOT change the number of bays. Blueprint is law."""
 
 
 # ─────────────────────────────────────────────
@@ -827,7 +855,7 @@ def analyze_building(image_path):
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(GEMINI_TEXT)
     img   = Image.open(image_path)
-    print("\n  Analyse du batiment...")
+    print("\n  Analyse du batiment avec Gemini...")
     response = model.generate_content([
         "Describe this building in one short sentence in English. Reply with description only.", img])
     desc = response.text.strip()
@@ -895,71 +923,91 @@ def generate_all_views(building_path, description, params, output_dir, prev_imag
     print("\n  [4/4] Vue de cote Matplotlib...")
     paths["mpl_cote"] = draw_side_view_detailed(params, os.path.join(output_dir, "mpl_cote.png"))
 
+    import shutil
+
     print("\n" + "="*55)
     print("  ETAPE 2 : RENDU GEMINI (depuis blueprints Matplotlib)")
     if has_prev:
-        print("  MODE MODIFICATION : style de l'ancienne image conserve")
+        print("  MODE MODIFICATION : vues iso/dessus/cote conservees, seul batiment mis a jour")
     print("="*55)
 
-    # Vue isométrique
-    print("\n  [1/4] Vue isometrique realiste ...")
-    if has_prev and prev_images.get("gemini_iso") and os.path.exists(prev_images["gemini_iso"]):
-        # Modification : [ancienne image Gemini] + [nouveau blueprint Matplotlib]
-        ref_iso = [prev_images["gemini_iso"], paths["mpl_iso"]]
-        use_prev_iso = True
-        print("    -> Mode modification : ancienne image + nouveau blueprint")
-    else:
-        ref_iso = [paths["mpl_iso"]]
-        use_prev_iso = False
-    paths["gemini_iso"] = gemini_render(
-        prompt_render_3d(params, prev_image=use_prev_iso),
-        os.path.join(output_dir, "gemini_iso.png"),
-        ref_images=ref_iso)
-    time.sleep(3)
+    if has_prev:
+        # ── MODE MODIFICATION ─────────────────────────────────────────
+        # Les vues iso, dessus et cote sont COPIEES telles quelles.
+        # Gemini n'est PAS rappele pour ces 3 vues.
+        # Seule la vue batiment est regeneree avec le nouveau blueprint de face.
 
-    # Vue de dessus
-    print("\n  [2/4] Vue de dessus realiste (Matplotlib → Gemini)...")
-    if has_prev and prev_images.get("gemini_top") and os.path.exists(prev_images["gemini_top"]):
-        ref_top = [prev_images["gemini_top"], paths["mpl_top"]]
-        use_prev_top = True
-        print("    -> Mode modification : ancienne image + nouveau blueprint")
-    else:
-        ref_top = [paths["mpl_top"]]
-        use_prev_top = False
-    paths["gemini_top"] = gemini_render(
-        prompt_view_top(params, prev_image=use_prev_top),
-        os.path.join(output_dir, "gemini_top.png"),
-        ref_images=ref_top)
-    time.sleep(3)
+        print("\n  [1/4] Vue isometrique — conservee telle quelle...")
+        dest_iso = os.path.join(output_dir, "gemini_iso.png")
+        if prev_images.get("gemini_iso") and os.path.exists(prev_images["gemini_iso"]):
+            if os.path.abspath(prev_images["gemini_iso"]) != os.path.abspath(dest_iso):
+                shutil.copy2(prev_images["gemini_iso"], dest_iso)
+            paths["gemini_iso"] = dest_iso
+        else:
+            paths["gemini_iso"] = gemini_render(prompt_render_3d(params), dest_iso, ref_images=[paths["mpl_iso"]])
+            time.sleep(3)
 
-    # Vue de côté
-    print("\n  [3/4] Vue de cote realiste (Matplotlib → Gemini)...")
-    if has_prev and prev_images.get("gemini_cote") and os.path.exists(prev_images["gemini_cote"]):
-        ref_cote = [prev_images["gemini_cote"], paths["mpl_cote"]]
-        use_prev_cote = True
-        print("    -> Mode modification : ancienne image + nouveau blueprint")
-    else:
-        ref_cote = [paths["mpl_cote"]]
-        use_prev_cote = False
-    paths["gemini_cote"] = gemini_render(
-        prompt_view_cote(params, prev_image=use_prev_cote),
-        os.path.join(output_dir, "gemini_cote.png"),
-        ref_images=ref_cote)
-    time.sleep(3)
+        print("\n  [2/4] Vue de dessus — conservee telle quelle...")
+        dest_top = os.path.join(output_dir, "gemini_top.png")
+        if prev_images.get("gemini_top") and os.path.exists(prev_images["gemini_top"]):
+            if os.path.abspath(prev_images["gemini_top"]) != os.path.abspath(dest_top):
+                shutil.copy2(prev_images["gemini_top"], dest_top)
+            paths["gemini_top"] = dest_top
+        else:
+            paths["gemini_top"] = gemini_render(prompt_view_top(params), dest_top, ref_images=[paths["mpl_top"]])
+            time.sleep(3)
 
-    # Application sur bâtiment
-    print("\n  [4/4] Application sur batiment (Matplotlib + batiment → Gemini)...")
-    if has_prev and prev_images.get("batiment") and os.path.exists(prev_images["batiment"]):
-        ref_bat = [prev_images["batiment"], building_path, paths["mpl_face"]]
-        use_prev_bat = True
-        print("    -> Mode modification : ancienne image + batiment + nouveau blueprint")
+        print("\n  [3/4] Vue de cote — conservee telle quelle...")
+        dest_cote = os.path.join(output_dir, "gemini_cote.png")
+        if prev_images.get("gemini_cote") and os.path.exists(prev_images["gemini_cote"]):
+            if os.path.abspath(prev_images["gemini_cote"]) != os.path.abspath(dest_cote):
+                shutil.copy2(prev_images["gemini_cote"], dest_cote)
+            paths["gemini_cote"] = dest_cote
+        else:
+            paths["gemini_cote"] = gemini_render(prompt_view_cote(params), dest_cote, ref_images=[paths["mpl_cote"]])
+            time.sleep(3)
+
+        print("\n  [4/4] Vue batiment — regeneree avec nouveaux parametres...")
+        if prev_images.get("batiment") and os.path.exists(prev_images["batiment"]):
+            ref_bat = [prev_images["batiment"], building_path, paths["mpl_face"]]
+            use_prev_bat = True
+        else:
+            ref_bat = [building_path, paths["mpl_face"]]
+            use_prev_bat = False
+        paths["batiment"] = gemini_render(
+            prompt_apply_building(description, params, prev_image=use_prev_bat),
+            os.path.join(output_dir, "batiment_echafaudage.png"),
+            ref_images=ref_bat)
+
     else:
-        ref_bat = [building_path, paths["mpl_face"]]
-        use_prev_bat = False
-    paths["batiment"] = gemini_render(
-        prompt_apply_building(description, params, prev_image=use_prev_bat),
-        os.path.join(output_dir, "batiment_echafaudage.png"),
-        ref_images=ref_bat)
+        # ── PREMIERE GENERATION — Gemini pour toutes les vues ──────────
+
+        print("\n  [1/4] Vue isometrique realiste (Matplotlib → Gemini)...")
+        paths["gemini_iso"] = gemini_render(
+            prompt_render_3d(params),
+            os.path.join(output_dir, "gemini_iso.png"),
+            ref_images=[paths["mpl_iso"]])
+        time.sleep(3)
+
+        print("\n  [2/4] Vue de dessus realiste (Matplotlib → Gemini)...")
+        paths["gemini_top"] = gemini_render(
+            prompt_view_top(params),
+            os.path.join(output_dir, "gemini_top.png"),
+            ref_images=[paths["mpl_top"]])
+        time.sleep(3)
+
+        print("\n  [3/4] Vue de cote realiste (Matplotlib → Gemini)...")
+        paths["gemini_cote"] = gemini_render(
+            prompt_view_cote(params),
+            os.path.join(output_dir, "gemini_cote.png"),
+            ref_images=[paths["mpl_cote"]])
+        time.sleep(3)
+
+        print("\n  [4/4] Application sur batiment (Matplotlib + batiment → Gemini)...")
+        paths["batiment"] = gemini_render(
+            prompt_apply_building(description, params),
+            os.path.join(output_dir, "batiment_echafaudage.png"),
+            ref_images=[building_path, paths["mpl_face"]])
 
     paths["face"] = paths["mpl_face"]
     return paths
