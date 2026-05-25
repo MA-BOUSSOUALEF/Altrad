@@ -616,7 +616,6 @@ with st.form(key="chat_form", clear_on_submit=True):
 # Suggestions rapides (hors du form)
 sug_cols = st.columns(4)
 suggestions_list = [
-    ("Chiffrage Cloison ALTRAD", "Chiffrage Cloison ALTRAD"),
     ("Ajouter un étage", "Ajouter un étage"),
     ("Console 70cm façade", "Console 70cm façade"),
     ("Générer le PDF", "Générer le PDF"),
