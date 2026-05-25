@@ -827,7 +827,7 @@ def analyze_building(image_path):
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel(GEMINI_TEXT)
     img   = Image.open(image_path)
-    print("\n  Analyse du batiment avec Gemini...")
+    print("\n  Analyse du batiment...")
     response = model.generate_content([
         "Describe this building in one short sentence in English. Reply with description only.", img])
     desc = response.text.strip()
@@ -902,7 +902,7 @@ def generate_all_views(building_path, description, params, output_dir, prev_imag
     print("="*55)
 
     # Vue isométrique
-    print("\n  [1/4] Vue isometrique realiste (Matplotlib → Gemini)...")
+    print("\n  [1/4] Vue isometrique realiste ...")
     if has_prev and prev_images.get("gemini_iso") and os.path.exists(prev_images["gemini_iso"]):
         # Modification : [ancienne image Gemini] + [nouveau blueprint Matplotlib]
         ref_iso = [prev_images["gemini_iso"], paths["mpl_iso"]]

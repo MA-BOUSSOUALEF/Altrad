@@ -1431,7 +1431,7 @@ if need_agent:
         # Vérifier si une photo est disponible ; sinon générer sans (Gemini utilisera un fond générique)
         if not st.session_state.building_image:
             add_message("system", "ℹ️ Aucune photo uploadée — génération sans bâtiment.")
-        add_message("system", "⏳ Génération en cours (Matplotlib → Gemini)...")
+        add_message("system", "⏳ Génération en cours ...")
 
     if result.get("demande_pdf"):
         if st.session_state.generated_images:
