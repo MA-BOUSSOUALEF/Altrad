@@ -1272,7 +1272,7 @@ st.markdown("""
     <div class='main-header-icon'>🏗️</div>
     <div class='main-header-text'>
         <div class='title'>Comment puis-je vous aider, quelle est votre question ?</div>
-        <div class='sub'>propulsé par Altrad Plettac Vision IA — GPT-4o × Gemini</div>
+        <div class='sub'>propulsé par Altrad Plettac Vision IA</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
