@@ -1,0 +1,25 @@
+# Générateur d'échafaudage Altrad Plettac Vision
+# pip install -r requirements.txt
+
+# Google Gemini AI
+google-genai>=0.8.0
+google-generativeai>=0.8.0
+
+# OpenAI GPT-4o
+openai>=1.0.0
+
+# Streamlit chat
+streamlit>=1.32.0
+
+# Génération d'images / traitement
+Pillow>=10.0.0
+
+# Génération PDF
+reportlab>=4.0.0
+
+# Graphiques Matplotlib
+matplotlib>=3.7.0
+numpy>=1.24.0
+
+# Variables d'environnement
+python-dotenv>=1.0.0
